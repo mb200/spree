@@ -10,7 +10,6 @@
       "request": "launch",
       "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/jest",
       "args": [
-        "test",
         "${fileBasenameNoExtension}",
         "--runInBand",
         "--no-cache"

@@ -7,7 +7,7 @@ const exclude = "node_modules/**";
 
 export default {
   input: "src/index.ts",
-  external: ["react"],
+  external: ["react", "react-dom"],
   output: {
     file: "dist/index.js",
     format: "cjs",
@@ -18,6 +18,7 @@ export default {
     babel({
       exclude,
       extensions,
+      babelHelpers: "bundled",
     }),
   ],
 };
