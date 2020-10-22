@@ -1,15 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import Scheduler from "scheduler";
+
+type ExperimentalScheduler = typeof Scheduler & {
+  unstable_advanceTime(time: number): void;
+  unstable_flushAll(): void;
+};
 
 let root: ReactDOM.Root | undefined;
 
 function render(jsx: React.ReactElement): void {
-  cleanup();
-
-  const elem = document.createElement("div");
-  document.body.appendChild(elem);
-  root = ReactDOM.unstable_createRoot(elem);
-
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  root = ReactDOM.unstable_createRoot(container);
   root.render(jsx);
 }
 
@@ -20,8 +23,42 @@ function cleanup(): void {
   }
 
   while (document.body.firstChild) {
-    document.removeChild(document.body.firstChild);
+    document.body.removeChild(document.body.firstChild);
   }
+}
+
+function advanceTimers(time: number): void {
+  (Scheduler as ExperimentalScheduler).unstable_advanceTime(time);
+  jest.advanceTimersByTime(time);
+}
+
+function flushAll(): void {
+  (Scheduler as ExperimentalScheduler).unstable_flushAll();
+}
+
+function advanceAllTimers(): void {
+  jest.runAllTimers();
+}
+
+async function flushPromises(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+function delay<C>(time: number): (v: C) => Promise<C> {
+  return (value: C) =>
+    new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(value);
+      }, time);
+    });
+}
+
+function sleep(period: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(true);
+    }, period);
+  });
 }
 
 interface Props {
@@ -29,31 +66,42 @@ interface Props {
 }
 
 interface State {
-  hasError: boolean;
   error: Error | null;
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  state = { hasError: false, error: null };
+  state = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return {
-      hasError: true,
       error,
     };
   }
 
+  componentDidCatch(error: Error): void {
+    console.error(error);
+  }
+
   render(): React.ReactNode | null {
-    if (this.state.hasError) {
+    if (this.state.error) {
       return this.props.fallback;
     }
     return this.props.children;
   }
 }
 
-export { fireEvent, screen } from "@testing-library/react";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+export { fireEvent, screen, waitFor } from "@testing-library/react";
+// Export act from test-utils for Suspense support.
 export { act } from "react-dom/test-utils";
-export { ErrorBoundary };
-export { render };
+// Export our own custom functions.
+export {
+  advanceTimers,
+  advanceAllTimers,
+  cleanup,
+  delay,
+  ErrorBoundary,
+  flushAll,
+  flushPromises,
+  render,
+  sleep,
+};

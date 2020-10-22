@@ -1,26 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { TC39Observer, TC39Subscription } from "./rx";
+import { Subject } from "./rx";
+
 /**
  * Spree Resource Types
  */
 
 export type Hash = (() => string) | string;
 
-export type Cache<V> = {
-  read(key: string, fallback: () => Promise<V>): V;
-  preload(key: string, fallback: () => Promise<V>): void;
-};
-
 export enum ResultStatus {
-  EMPTY,
   PENDING,
   RESOLVED,
   REJECTED,
 }
-
-export type EmptyResult = {
-  status: ResultStatus.EMPTY;
-  value: null;
-};
 
 export type PendingResult<Data> = {
   status: ResultStatus.PENDING;
@@ -38,25 +30,32 @@ export type RejectedResult = {
 };
 
 export type Result<Data> =
-  | EmptyResult
   | PendingResult<Data>
   | ResolvedResult<Data>
   | RejectedResult;
 
-export type Resource<V, A extends any[]> = (...args: A) => Spree<V, A>;
+export type Query<V, A extends any[]> = (...args: A) => Spree<V>;
+export type Mutation<V, A extends any[]> = (...args: A) => SpreeMutation<V>;
 
-export interface Spree<V, A extends any[]> {
+export type Cache<V> = {
+  read(key: string, fallback: () => Promise<V>): Result<V>;
+  write(key: string, value: Result<V>): void;
+  // preload(key: string, fallback: () => Promise<V>): void;
+  subscribe(
+    key: string,
+    fallback: () => Promise<V>,
+    subscriber: TC39Observer<Result<V>>
+  ): TC39Subscription<Result<V>>;
+  // revalidate(key: string, fallback: () => Promise<V>): void;
+};
+
+export type Spree<V> = {
   read(): V;
   preload(): void;
-  reference: Reference<V, A>;
-}
+  subscribe(onNext: (value: Result<V>) => void): TC39Subscription<Result<V>>;
+  mutate(commitChange: () => Promise<V>, optimisticValue?: V): Promise<void>;
+};
 
-export interface Readable<V> {
-  read(): V;
-}
-
-export interface Reference<V, A extends any[]> {
-  key: (...args: A) => Promise<V>;
-  args: A;
-  hash: Hash;
+export interface SpreeMutation<V> {
+  mutate(): Subject<Result<V>>;
 }

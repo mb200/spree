@@ -7,7 +7,7 @@ const exclude = "node_modules/**";
 
 export default {
   input: "src/index.ts",
-  external: ["react", "react-dom"],
+  external: ["react", "react-dom", "scheduler"],
   output: {
     file: "dist/index.js",
     format: "cjs",

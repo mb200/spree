@@ -1,2 +1,4 @@
-export type { Spree } from "../src/core/types";
-export { createResource } from "./core/resource";
+export { createQuery } from "./core/query";
+export * from "./core/types";
+export { useMutation } from "./hooks/useMutation";
+export { useQuery } from "./hooks/useQuery";
