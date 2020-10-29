@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import LRUCache from "lru-cache";
-import { fromPromise, Subject } from "./rx";
-import { Cache, Result } from "./types";
+import { createSubject, fromPromise } from "../rx/subject";
+import { Cache, Result, Subject } from "./types";
 
 function createCache<V>(): Cache<V> {
   const lruCache = new LRUCache<string, Subject<Result<V>>>();
@@ -30,7 +30,7 @@ function createCache<V>(): Cache<V> {
       if (existing) {
         existing.next(value);
       } else {
-        lruCache.set(key, new Subject(value));
+        lruCache.set(key, createSubject(value));
       }
     },
     clear: (filterFn) => {

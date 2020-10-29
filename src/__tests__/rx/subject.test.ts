@@ -1,4 +1,5 @@
-import { Subject, TC39Observer } from "../../core/rx";
+import { TC39Observer } from "../../core/types";
+import { createSubject } from "../../rx/subject";
 
 class TestObserver<T> implements TC39Observer<T> {
   results: (T | string)[] = [];
@@ -16,9 +17,9 @@ class TestObserver<T> implements TC39Observer<T> {
   }
 }
 
-test("emits value to subscriber on next", () => {
+test("emits value to observer on next", () => {
   // Given: a simple subject.
-  const subject = new Subject(10);
+  const subject = createSubject(10);
 
   // When: we subscribe to it.
   const observer = new TestObserver<number>();
@@ -36,7 +37,7 @@ test("emits value to subscriber on next", () => {
 
 test("does not emit values after complete", () => {
   // Given: a simple subject.
-  const subject = new Subject(10);
+  const subject = createSubject(10);
 
   // When: we subscribe to it.
   const observer = new TestObserver<number>();
@@ -65,33 +66,44 @@ test("does not emit values after complete", () => {
 
 test("does not emit values after unsubscribe", () => {
   // Given: a simple subject.
-  const subject = new Subject(10);
+  const subject = createSubject(10);
 
   // When: we subscribe to it.
   const observer = new TestObserver<number>();
-  const subscription = subject.subscribe(observer);
-
-  // And: we call next.
-  subject.next(27);
-  subject.next(29);
-  subject.next(31);
-  subject.next(35);
+  subject.subscribe(observer);
 
   // Then: it should emit the initial value.
-  expect(observer.results).toEqual([10, 27, 29, 31, 35]);
+  expect(observer.results).toEqual([10]);
 
-  // When: we unsubscribe.
-  subscription.unsubscribe();
+  // When: we call next.
+  subject.next(27);
+  subject.next(29);
 
-  // Then: it should not emit any further values.
+  // Then: it should emit the initial value.
+  expect(observer.results).toEqual([10, 27, 29]);
+
+  // When: we call unsubscribe on the subject.
+  subject.unsubscribe();
+
+  // Then: it should not emit valeus to the observer.
   subject.next(99);
   subject.next(101);
-  expect(observer.results).toEqual([10, 27, 29, 31, 35]);
+  expect(observer.results).toEqual([10, 27, 29]);
+
+  // When: a new observer tries to subscribe.
+  const observer2 = new TestObserver<number>();
+  subject.subscribe(observer2);
+
+  // Then: it should get the latest value, but no future values.
+  expect(observer2.results).toEqual([29]);
+  subject.next(103);
+  subject.next(105);
+  expect(observer2.results).toEqual([29]);
 });
 
-test("emits the last value to new subscribers", () => {
+test("emits the latest value to new observers", () => {
   // Given: a simple subject.
-  const subject = new Subject(10);
+  const subject = createSubject(10);
 
   // When: we subscribe to it.
   const observer = new TestObserver<number>();
@@ -116,7 +128,7 @@ test("emits the last value to new subscribers", () => {
 
 test("broadcasts to multiple subscribers", async () => {
   // Given: a simple subject.
-  const subject = new Subject(10);
+  const subject = createSubject(10);
 
   // When: multiple subscribers subscribe to it.
   const observer1 = new TestObserver<number>();
@@ -147,4 +159,30 @@ test("broadcasts to multiple subscribers", async () => {
   // And: the unsubscribed observer should not.
   expect(subscription1.closed).toBeTruthy();
   expect(observer1.results).toEqual([10, 27, 29, 31, 35]);
+});
+
+test("does not emit more values to observer after it unsubscribes", () => {
+  // Given: a simple subject.
+  const subject = createSubject(10);
+
+  // When: we subscribe to it.
+  const observer = new TestObserver<number>();
+  const subscription = subject.subscribe(observer);
+
+  // And: we call next.
+  subject.next(27);
+  subject.next(29);
+  subject.next(31);
+  subject.next(35);
+
+  // Then: it should emit the initial value.
+  expect(observer.results).toEqual([10, 27, 29, 31, 35]);
+
+  // When: we unsubscribe.
+  subscription.unsubscribe();
+
+  // Then: it should not emit any further values.
+  subject.next(99);
+  subject.next(101);
+  expect(observer.results).toEqual([10, 27, 29, 31, 35]);
 });
