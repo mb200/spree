@@ -95,6 +95,9 @@ export type MutationOptions<V> = {
   optimisticUpdate?: V;
   resetCache?: boolean;
 };
+export type RevalidationOptions = {
+  resetCache?: boolean;
+};
 
 export type Cache<V> = {
   read(key: string, fallback: () => Promise<V>): Result<V>;
@@ -116,7 +119,7 @@ export type Spree<V> = {
     commitChange: () => Promise<V>,
     options?: MutationOptions<V>
   ): Promise<void>;
-  revalidate(): Promise<void>;
+  revalidate(options?: RevalidationOptions): Promise<void>;
 };
 
 export interface SpreeMutation<V> {

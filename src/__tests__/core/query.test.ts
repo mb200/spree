@@ -78,3 +78,7 @@ test("allows users to mutate and subscribe to the cache", async () => {
   expect(mockClient).toHaveBeenCalledWith(1);
   expect(mockClient).toBeCalledTimes(1);
 });
+
+test.todo(
+  "allows users to revalidate current entry and clear remaining entries"
+);

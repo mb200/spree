@@ -44,7 +44,14 @@ function createQuery<V, A extends any[]>(
           complete: noop,
         });
       },
-      revalidate,
+      revalidate: async (options = {}) => {
+        const { resetCache } = options;
+
+        // Clear all other cache entries.
+        if (resetCache) cache.clear((k) => k !== key);
+
+        return revalidate();
+      },
       mutate: async (commit, options = {}) => {
         const { optimisticUpdate, resetCache } = options;
 
