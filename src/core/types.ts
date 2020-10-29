@@ -36,24 +36,32 @@ export type Result<Data> =
 
 export type Query<V, A extends any[]> = (...args: A) => Spree<V>;
 export type Mutation<V, A extends any[]> = (...args: A) => SpreeMutation<V>;
+export type MutationOptions<V> = {
+  optimisticUpdate?: V;
+  resetCache?: boolean;
+};
 
 export type Cache<V> = {
   read(key: string, fallback: () => Promise<V>): Result<V>;
   write(key: string, value: Result<V>): void;
-  // preload(key: string, fallback: () => Promise<V>): void;
+  clear(filterFn: (key: string) => boolean): void;
   subscribe(
     key: string,
     fallback: () => Promise<V>,
     subscriber: TC39Observer<Result<V>>
   ): TC39Subscription<Result<V>>;
-  // revalidate(key: string, fallback: () => Promise<V>): void;
+  keys(): string[];
 };
 
 export type Spree<V> = {
   read(): V;
   preload(): void;
   subscribe(onNext: (value: Result<V>) => void): TC39Subscription<Result<V>>;
-  mutate(commitChange: () => Promise<V>, optimisticValue?: V): Promise<void>;
+  mutate(
+    commitChange: () => Promise<V>,
+    options?: MutationOptions<V>
+  ): Promise<void>;
+  revalidate(): Promise<void>;
 };
 
 export interface SpreeMutation<V> {

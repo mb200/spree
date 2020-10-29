@@ -33,10 +33,17 @@ function createCache<V>(): Cache<V> {
         lruCache.set(key, new Subject(value));
       }
     },
+    clear: (filterFn) => {
+      lruCache
+        .keys()
+        .filter(filterFn)
+        .forEach((keyToDelete) => lruCache.del(keyToDelete));
+    },
     subscribe: (key, fallback, obs) => {
       const subject$ = getResult(key, fallback);
       return subject$.subscribe(obs);
     },
+    keys: () => lruCache.keys(),
   };
 
   return cache;

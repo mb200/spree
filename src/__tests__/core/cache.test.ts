@@ -111,3 +111,21 @@ test("notifies subscribers of all changes", async () => {
   // Then: our listener should update the value.
   expect(subscribedValue).toEqual({ status: ResultStatus.RESOLVED, value: 1 });
 });
+
+test("clears all matching entries", () => {
+  // Given: a basic cache with a few entries.
+  const cache = createCache<number>();
+  const result = (v: number): Result<number> => ({
+    status: ResultStatus.RESOLVED,
+    value: v,
+  });
+  cache.write("a", result(1));
+  cache.write("absynth", result(2));
+  cache.write("ballet", result(3));
+
+  // When: we clear all entries starting with "a".
+  cache.clear((k) => /^a/i.test(k));
+
+  // Then: we should only have one entry left.
+  expect(cache.keys()).toEqual(["ballet"]);
+});
