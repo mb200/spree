@@ -10,6 +10,8 @@ function createQuery<V, A extends any[]>(
 ): Query<V, A> {
   // Resource/Spree specific cache.
   const cache = createCache<V>();
+  let pendingMutations = 0;
+  let shouldRevalidateAfterLastMutation = false;
 
   return (...args) => {
     const key = hash(...args);
@@ -56,7 +58,7 @@ function createQuery<V, A extends any[]>(
         const { optimisticUpdate, resetCache } = options;
 
         /**
-         * TODO: RACE Condition FUN.
+         * Possible Race Conditions.
          *
          * If there are overlapping async mutations, each with its own response state:
          *
@@ -70,11 +72,12 @@ function createQuery<V, A extends any[]>(
          *
          *
          * To avoid an invalid final state, if there are overlapping mutations,
-         * we should 1) Not optimistically update, and 2) wait for the longest
-         * promise to resolve and then revalidate when.
+         * we should 1) Not update the state from either response, and 2) wait for
+         * the longest mutation to complete and then revalidate.
          *
-         * Observables of some kind (switchMap?) may make this easier to manage.
          */
+        pendingMutations += 1;
+        shouldRevalidateAfterLastMutation = pendingMutations > 1 ? true : false;
 
         // Optimistically update in cache, if given a value.
         if (optimisticUpdate) {
@@ -87,18 +90,24 @@ function createQuery<V, A extends any[]>(
         // Clear all other cache entries.
         if (resetCache) cache.clear((k) => k !== key);
 
-        // Revalidate, then update the cache for this entry.
-        commit().then(
-          (v) =>
+        // Use the commit result to update the cache for this entry, if there hasn't been another mutation.
+        try {
+          const v = await commit();
+          if (pendingMutations <= 1) {
             cache.write(key, {
               status: ResultStatus.RESOLVED,
               value: v,
-            }),
-          (_e) => {
-            // If there's an error updating, we need to refetch, then update the cache.
+            });
+          }
+        } catch (e) {
+          // If there's an error updating, we need to revalidate and use that to update the cache instead.
+          shouldRevalidateAfterLastMutation = true;
+        } finally {
+          pendingMutations -= 1;
+          if (pendingMutations === 0 && shouldRevalidateAfterLastMutation) {
             revalidate();
           }
-        );
+        }
       },
     };
   };

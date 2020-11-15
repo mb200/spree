@@ -11,11 +11,19 @@ import {
   screen,
 } from "../../test-utils";
 
-jest.useFakeTimers();
+jest.mock("scheduler", () => require("scheduler/unstable_mock"));
+
+beforeAll(() => {
+  jest.useFakeTimers();
+});
 
 afterEach(() => {
   cleanup();
   jest.resetAllMocks();
+});
+
+afterAll(() => {
+  jest.useRealTimers();
 });
 
 test("suspends and shows fallback", async () => {

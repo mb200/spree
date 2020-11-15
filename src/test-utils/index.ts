@@ -53,6 +53,14 @@ function delay<C>(time: number): (v: C) => Promise<C> {
     });
 }
 
+function delayedPromise<C>(result: C, time: number): Promise<C> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(result);
+    }, time);
+  });
+}
+
 function sleep(period: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -99,6 +107,7 @@ export {
   advanceAllTimers,
   cleanup,
   delay,
+  delayedPromise,
   ErrorBoundary,
   flushAll,
   flushPromises,
