@@ -49,6 +49,37 @@ test("caches the value across multiple reads", async () => {
   expect(mockClient).toBeCalledTimes(1);
 });
 
+test("caches entries for multiple arguments", async () => {
+  // Given: a query.
+  const mockFetcher = jest.fn((id: number) => Promise.resolve("test" + id));
+  const query = createQuery(mockFetcher);
+
+  // When: we call the query.
+  let spree = query(1);
+  await flushPromises();
+
+  // Then: it should resolve and cache the result.
+  expect(spree.read()).toEqual("test1");
+  expect(spree.read()).toEqual("test1");
+  expect(mockFetcher).toHaveBeenCalledTimes(1);
+
+  // When: we call the query with a new arg (creating a new spree).
+  spree = query(2);
+  await flushPromises();
+
+  // Then: it should resolve and cache the result.
+  expect(spree.read()).toEqual("test2");
+  expect(spree.read()).toEqual("test2");
+  expect(mockFetcher).toHaveBeenCalledTimes(2);
+
+  // When: we re-call the query with the original arg.
+  spree = query(1);
+
+  // Then: it should return the cached result without calling the client again.
+  expect(mockFetcher).toHaveBeenCalledTimes(2);
+  expect(spree.read()).toEqual("test1");
+});
+
 test("allows users to mutate and subscribe to the cache", async () => {
   // Given: a mock function
   const mockClient = jest.fn((id: number) => Promise.resolve("test" + id));
@@ -197,6 +228,55 @@ test("only revalidates once if overlapping mutations fail", async () => {
   jest.useRealTimers();
 });
 
-test.todo(
-  "allows users to revalidate current entry and clear remaining entries"
-);
+test("allows users to revalidate current entry and (optionally) clear all other entries", async () => {
+  // Given: a query.
+  const mockFetcher = jest.fn((id: number) => Promise.resolve("test" + id));
+  const query = createQuery(mockFetcher);
+
+  // When: we call the query.
+  let spree = query(1);
+  await flushPromises();
+
+  // Then: it should resolve and cache the result.
+  expect(spree.read()).toEqual("test1");
+  expect(spree.read()).toEqual("test1");
+  expect(mockFetcher).toHaveBeenCalledTimes(1);
+
+  // When: we call the query with a new arg (creating a new spree).
+  spree = query(2);
+  await flushPromises();
+
+  // Then: it should resolve and cache the result.
+  expect(spree.read()).toEqual("test2");
+  expect(spree.read()).toEqual("test2");
+  expect(mockFetcher).toHaveBeenCalledTimes(2);
+
+  // When: we revalidate.
+  spree.revalidate();
+  await flushPromises();
+
+  // Then: it should have called the client again.
+  expect(mockFetcher).toHaveBeenCalledTimes(3);
+  expect(spree.read()).toEqual("test2");
+
+  // When: we re-call the query with the original arg.
+  spree = query(1);
+
+  // Then: it should return the cached result without calling the client again.
+  expect(mockFetcher).toHaveBeenCalledTimes(3);
+  expect(spree.read()).toEqual("test1");
+
+  // When: we revalidate and ask it to reset the cache.
+  spree.revalidate({ resetCache: true });
+  await flushPromises();
+
+  // Then: it should have called the client again.
+  expect(mockFetcher).toHaveBeenCalledTimes(4);
+  expect(spree.read()).toEqual("test1");
+
+  // And blown out the cache for all other args.
+  spree = query(2);
+  await flushPromises();
+  expect(mockFetcher).toHaveBeenCalledTimes(5);
+  expect(spree.read()).toEqual("test2");
+});

@@ -118,7 +118,7 @@ export type Spree<V> = {
   mutate(
     commitChange: () => Promise<V>,
     options?: MutationOptions<V>
-  ): Promise<void>;
+  ): Promise<boolean>;
   revalidate(options?: RevalidationOptions): Promise<void>;
 };
 

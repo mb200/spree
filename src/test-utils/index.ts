@@ -61,6 +61,14 @@ function delayedPromise<C>(result: C, time: number): Promise<C> {
   });
 }
 
+function delayedError<C>(err: string, time: number): Promise<C> {
+  return new Promise((_res, reject) => {
+    setTimeout(() => {
+      reject(new Error(err));
+    }, time);
+  });
+}
+
 function sleep(period: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -107,6 +115,7 @@ export {
   advanceAllTimers,
   cleanup,
   delay,
+  delayedError,
   delayedPromise,
   ErrorBoundary,
   flushAll,

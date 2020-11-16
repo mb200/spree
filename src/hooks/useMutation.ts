@@ -7,6 +7,7 @@ type MutationState = {
 };
 
 type MutationAction =
+  | { type: "reset" }
   | { type: "mutation-pending" }
   | { type: "mutation-success" }
   | { type: "mutation-error"; error: Error };
@@ -18,6 +19,8 @@ function mutationReducer(
   action: MutationAction
 ): MutationState {
   switch (action.type) {
+    case "reset":
+      return { ...oldState, error: null };
     case "mutation-pending":
       return { isCommitting: true, error: null };
     case "mutation-success":
@@ -44,25 +47,34 @@ function useMutation<V>(
 
       const wrappedUpdater = async (): Promise<V> => {
         try {
-          return await updater();
+          const response = await updater();
+
+          return response;
         } catch (e) {
           dispatch({ type: "mutation-error", error: e });
+
           throw e;
-        } finally {
-          if (isMounted.current) dispatch({ type: "mutation-success" });
         }
       };
 
-      spree.mutate(wrappedUpdater, options);
+      const mutated = await spree.mutate(wrappedUpdater, options);
+      if (isMounted.current && mutated) dispatch({ type: "mutation-success" });
     },
     [spree]
   );
+
+  // Clear the error state if a new value has been inserted into cache (from revalidation or other).
+  useEffect(() => {
+    const subscription = spree.subscribe((_v) => dispatch({ type: "reset" }));
+
+    return () => subscription.unsubscribe();
+  }, [spree]);
 
   useEffect(() => {
     return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [isMounted]);
 
   return [commit, state];
 }
