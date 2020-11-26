@@ -64,6 +64,7 @@ test("mutates the cache with value returned by the commit function", async () =>
   expect(screen.getByText("updated-test")).toBeInTheDocument();
   expect(client).toHaveBeenCalledTimes(1);
   expect(updater).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText(/committing/i)).not.toBeInTheDocument();
 });
 
 test("mutates the cache with optimistic update then returned value", async () => {
@@ -108,6 +109,7 @@ test("mutates the cache with optimistic update then returned value", async () =>
   expect(screen.getByText("actual-test")).toBeInTheDocument();
   expect(client).toHaveBeenCalledTimes(1);
   expect(updater).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText(/committing/i)).not.toBeInTheDocument();
 });
 
 test("displays error when mutation fails, then revalidates", async () => {
@@ -160,6 +162,7 @@ test("displays error when mutation fails, then revalidates", async () => {
   expect(screen.getByText("revalidated-test")).toBeInTheDocument();
   expect(client).toHaveBeenCalledTimes(2);
   expect(updater).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText(/committing/i)).not.toBeInTheDocument();
 });
 
 test("handles serial multiple mutations", async () => {
@@ -207,6 +210,7 @@ test("handles serial multiple mutations", async () => {
   expect(screen.getByText("mutation-test2")).toBeInTheDocument();
   expect(client).toHaveBeenCalledTimes(1);
   expect(updater).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText(/committing/i)).not.toBeInTheDocument();
 });
 
 test("handles race conditions with parallel mutations", async () => {
@@ -272,6 +276,7 @@ test("handles race conditions with parallel mutations", async () => {
   expect(screen.getByText("revalidated-test")).toBeInTheDocument();
   expect(client).toHaveBeenCalledTimes(2);
   expect(updater).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText(/committing/i)).not.toBeInTheDocument();
 });
 
 function createMocks(): {

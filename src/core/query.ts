@@ -98,15 +98,18 @@ function createQuery<V, A extends any[]>(
               status: ResultStatus.RESOLVED,
               value: v,
             });
-            return true;
           }
         } catch (e) {
           // If there's an error updating, we need to revalidate and use that to update the cache instead.
           shouldRevalidateAfterLastMutation = true;
         } finally {
           pendingMutations -= 1;
-          if (pendingMutations === 0 && shouldRevalidateAfterLastMutation) {
-            return revalidate().then(() => true);
+          if (pendingMutations === 0) {
+            if (shouldRevalidateAfterLastMutation) {
+              return revalidate().then(() => true);
+            } else {
+              return true;
+            }
           } else {
             return false;
           }
